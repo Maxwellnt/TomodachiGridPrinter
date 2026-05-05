@@ -3,7 +3,7 @@ import os
 import json
 import logging
 
-from main.controllers.InputMap import InputMap, JStickInput
+from main.InputMap import InputMap, LStickInput, RStickInput
 
 class UpperMenu(Enum):
     UNDO = 0
@@ -50,12 +50,15 @@ class MenuManager:
             self.pixels = canvas_data["pixels"]
 
         self.selected_tool = UpperMenu.BRUSH.value
-        self.selelected_palette = None
-        self.selelected_ingame_palette = 0
+        self.selected_palette = None
+        self.selected_ingame_palette = 0
         self.ingame_palette = [None, None, None, None, None, None, None, None, None]
 
     
-    def delta_inputs(self, delta_value:int, positive_input: InputMap|JStickInput, negative_input: InputMap|JStickInput):
+    def delta_inputs(self, 
+                     delta_value:int, 
+                     positive_input: InputMap|RStickInput|LStickInput, 
+                     negative_input: InputMap|RStickInput|LStickInput):
         if delta_value >= 0:
             input_value = positive_input
         else:
@@ -72,13 +75,13 @@ class MenuManager:
             new_index = self.ingame_palette.index(new_color)
             
         
-        delta_index = new_index - self.selelected_ingame_palette
+        delta_index = new_index - self.selected_ingame_palette
         
         yield from self.delta_inputs(delta_index, InputMap.DOWN, InputMap.UP)
 
         if select_color:
             yield InputMap.A
-            self.selelected_ingame_palette = new_index
+            self.selected_ingame_palette = new_index
     
     def edit_ingame_color(self, color_data: dict, reset=True, old_color_data: dict|None=None, palette_menu_active=False):   
         if not palette_menu_active:
@@ -100,20 +103,20 @@ class MenuManager:
                 steps_h = hsb_new_color["h"]
             
             if hsb_new_color["s"] > (211/2):
-                yield JStickInput.RIGHT, 4000
+                yield LStickInput.RIGHT, 4000
                 input_for_s = InputMap.LEFT
                 steps_s = 211 - hsb_new_color["s"]
             else:
-                yield JStickInput.LEFT, 4000
+                yield LStickInput.LEFT, 4000
                 input_for_s = InputMap.RIGHT
                 steps_s = hsb_new_color["s"]
                 
             if hsb_new_color["b"] > (110/2):
-                yield JStickInput.UP, 4000
+                yield LStickInput.UP, 4000
                 input_for_b = InputMap.DOWN
                 steps_b = 110 - hsb_new_color["b"]
             else:
-                yield JStickInput.DOWN, 4000
+                yield LStickInput.DOWN, 4000
                 input_for_b = InputMap.UP
                 steps_b = hsb_new_color["b"]    
             
@@ -150,10 +153,10 @@ class MenuManager:
         
         # Selected palete: H 
         
-        if self.selelected_palette is not None:
-            delta_h = color["h"] - self.selelected_palette["h"]
-            delta_s = color["s"] - self.selelected_palette["s"]
-            delta_b = color["b"] - self.selelected_palette["b"]
+        if self.selected_palette is not None:
+            delta_h = color["h"] - self.selected_palette["h"]
+            delta_s = color["s"] - self.selected_palette["s"]
+            delta_b = color["b"] - self.selected_palette["b"]
             
             for h_input in self.delta_inputs(delta_h, positive_input=InputMap.ZR, negative_input=InputMap.ZL):
                 yield h_input
@@ -175,15 +178,14 @@ class MenuManager:
                 yield InputMap.UP
             
         yield InputMap.A
-        self.selelected_palette = color
+        self.selected_palette = color
         
     def select_tool(self, new_tool:UpperMenu, select=True):
         yield InputMap.X
         
         delta_tool_index = new_tool.value - self.selected_tool
         
-        for input_command in self.delta_inputs(delta_tool_index, InputMap.RIGHT, InputMap.LEFT):
-            yield input_command
+        yield from self.delta_inputs(delta_tool_index, InputMap.RIGHT, InputMap.LEFT)
         
         self.selected_tool = new_tool.value
         
@@ -307,7 +309,7 @@ class MenuManager:
                     for pixel_index in range(len(row)):
                         if (row[pixel_index] is not None and self.palette[row[pixel_index]] in self.ingame_palette):
                             
-                            if self.ingame_palette[self.selelected_ingame_palette] is not self.palette[row[pixel_index]]:
+                            if self.ingame_palette[self.selected_ingame_palette] is not self.palette[row[pixel_index]]:
                                 yield from self.select_ingame_color(new_color=self.palette[row[pixel_index]], select_color=True)
                                 
                             yield InputMap.A
@@ -327,8 +329,20 @@ class MenuManager:
                     yield InputMap.LEFT
             for _ in range(self.canvas_height):
                 yield InputMap.UP
-                
-
+    
+    def reset_canvas(self):
+        
+        yield LStickInput.UP, 2000
+        yield from self.select_tool(UpperMenu.ERASER,select=False)
+        
+        yield InputMap.X
+        
+        yield InputMap.DOWN
+        yield InputMap.DOWN
+        yield InputMap.DOWN
+        
+        yield InputMap.A
+        
     def switch_menu(self, name):
         if name in self.menus:
             self.current_menu = self.menus[name]

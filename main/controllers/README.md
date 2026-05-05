@@ -1,1 +1,2 @@
-This folder is reserved for multiple controler implementations, if you dont want to use UARTSwitchCon project
+# How to make your own controller interface
+Use ControlDummy.py 

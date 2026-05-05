@@ -6,13 +6,14 @@ import serial
 import threading
 import logging
 from main.MenuManager import MenuManager, UpperMenu
-from main.controllers.ControlDumy import ControlDummy
-from main.controllers.InputMap import InputMap, JStickInput
+from main.controllers.ControlDummy import ControlDummy
+from main.InputMap import InputMap, RStickInput, LStickInput
 from main.controllers.Nuxbt import NuxbtController
 from main.controllers.UARTSwitchCon import ControllerManager
 import argparse
 
 
+logging.basicConfig(level=logging.INFO)
 # V.0 Total inputs 293059
 # V.1 Total inputs 75000~ 
 # V.2 Total inputs 75710
@@ -20,25 +21,30 @@ import argparse
 
 # V.4 Total inputs 15786
 # V.4 Total inputs 10014
-def prosses_inputs(cm:ControllerManager, inputs:list | Generator):
+def proses_inputs(cm: ControlDummy, inputs:list | Generator):
     global input_count
+    global time_count
     
-    for controler_command in inputs:
-        if isinstance(controler_command, tuple):
-            ms = controler_command[1]
-            input_command = controler_command[0]
+    for controller_command in inputs:
+        if isinstance(controller_command, tuple):
+            ms = controller_command[1]
+            input_command = controller_command[0]
         else:
-            ms = 110
-            input_command = controler_command
+            ms = 100
+            input_command = controller_command
             
         if isinstance(input_command, InputMap):
-            print(f"{input_command}")
-            cm.press(input_command, ms=ms)
+
+            cm.press_button(input_command, ms=ms)
             input_count += 1
-        elif isinstance(input_command, JStickInput):
-            cm.press(lx=input_command.value[0], ly=input_command.value[1], ms=ms)
+            time_count += ms
+        elif isinstance(input_command, RStickInput) or isinstance(input_command, LStickInput):
+            cm.tilt_sticks(input_command, ms=ms)
             input_count += 1
-           
+            time_count += ms
+        
+        if input_count % 1000 == 0:
+            cm.resync_controller()
         
 
 if __name__ == "__main__":
@@ -58,50 +64,34 @@ if __name__ == "__main__":
     mm = MenuManager(args.json_grid)
     
     input_count = 0
-
+    time_count = 0
+    if not args.test:
+        input("Did you go to the item category you want?")
+        input("Did you disconnect your controllers?")
     try:
         cm.sync()
         time.sleep(1)  # Give some time for the connection to stabilize
         if not args.test:
-            pair_question = input("Do you need to sync the controller [Y/N]")
-            if pair_question.upper() == "Y":
-                cm.get_controller_selected()
-                time.sleep(1)
-                cm.press(InputMap.A, ms=200)
+            cm.get_controller_selected()
+            time.sleep(2)
+            cm.press_button(InputMap.A, ms=100)
+            time.sleep(3)
                 
-            reset_question = input("Do you need to reset the canvas [Y/N]")
-            if reset_question.upper() == "Y":
-                cm.press(InputMap.B, ms=100)
-                time.sleep(0.5)
-                cm.press(InputMap.MINUS, ms=100)
-                time.sleep(2)
-                cm.press(InputMap.A, ms=100)
-                time.sleep(2)
-                cm.press(InputMap.LEFT, ms=100)
-                cm.press(InputMap.A, ms=100)
-                time.sleep(2)
-                cm.press(InputMap.A, ms=100)
-                time.sleep(1)
-                cm.press(InputMap.A, ms=100)
-                time.sleep(1)
-                cm.press(InputMap.A, ms=100)
-                time.sleep(2)
-                cm.press(InputMap.A, ms=100)
-                time.sleep(3)
+            
+        proses_inputs(cm, mm.reset_canvas())        
+        proses_inputs(cm, mm.select_tool(UpperMenu.BRUSH))
+        proses_inputs(cm, mm.select_brush())
                 
-        prosses_inputs(cm, mm.select_tool(UpperMenu.BRUSH))
-        prosses_inputs(cm, mm.select_brush())
-                
-        prosses_inputs(cm, mm.set_cusor_to_zero())
+        proses_inputs(cm, mm.set_cusor_to_zero())
         
 
-        prosses_inputs(cm, mm.get_movement_instructions_strat_2(ingame_palette_size=9))
+        proses_inputs(cm, mm.get_movement_instructions_strat_2(ingame_palette_size=9))
     
 
         
     finally:
         logging.info(f"Total inputs {input_count}")
-        cm.press()   # release everything
+        logging.info(f"Total time lapsed {(time_count/1000)/60:.2f} mins")
         cm.close_connection()
         logging.info("Serial connection closed, successfully exited.")
         

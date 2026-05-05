@@ -4,53 +4,66 @@ import logging
 import serial
 import time
 
-from main.controllers.InputMap import InputMap
+from main.InputMap import InputMap, LStickInput, RStickInput
+from main.controllers.ControlDummy import ControlDummy
 
 
 
 """
 Abandone this 
 """
-class ButtonIndex(Enum):
-    def __new__(cls, bit_shift, zone):
-        obj = object.__new__(cls)
-        obj._value_ = f"{bit_shift:02X} (zone {zone})"
-        obj.bit_shift = bit_shift
-        obj.zone = zone
-        return obj
 
-    NONE        = (8, 3)
-    
-    Y           = ((1 << 0), 2)
-    X           = ((1 << 3), 2)
-    B           = ((1 << 1), 2)
-    A           = ((1 << 2), 2)
-    R           = ((1 << 5), 2)
-    ZR          = ((1 << 7), 2)
-    
-    HOME        = ((1 << 4), 1) # Not tested
-    CAPTURE     = ((1 << 5), 1) # Not tested
-    
-    L           = ((1 << 4), 2)
-    ZL          = ((1 << 6), 2)
-    MINUS       = ((1 << 0), 1)
-    PLUS        = ((1 << 1), 1)
-    R_STICK     = ((1 << 3), 1)
-    
-    UP          = (0, 3)
-    UP_RIGHT    = (1, 3)
-    RIGHT       = (2, 3)
-    RIGHT_DOWN  = (3, 3)
-    DOWN        = (4, 3)    
-    DOWN_LEFT   = (5, 3)
-    LEFT        = (6, 3)    
-    LEFT_UP     = (7, 3)
     
     
 # TODO: Add enum for easy joystick directions (e.g. UP = ly=255, DOWN=ly=0, etc)
 
 
-class ControllerManager:
+class ControllerManager(ControlDummy):
+    class ButtonIndex(Enum):
+        def __new__(cls, bit_shift, zone):
+            obj = object.__new__(cls)
+            obj._value_ = f"{bit_shift:02X} (zone {zone})"
+            obj.bit_shift = bit_shift
+            obj.zone = zone
+            return obj
+
+        NONE        = (8, 3)
+        
+        Y           = ((1 << 0), 2)
+        X           = ((1 << 3), 2)
+        B           = ((1 << 1), 2)
+        A           = ((1 << 2), 2)
+        R           = ((1 << 5), 2)
+        ZR          = ((1 << 7), 2)
+        
+        HOME        = ((1 << 4), 1) # Not tested
+        CAPTURE     = ((1 << 5), 1) # Not tested
+        
+        L           = ((1 << 4), 2)
+        ZL          = ((1 << 6), 2)
+        MINUS       = ((1 << 0), 1)
+        PLUS        = ((1 << 1), 1)
+        R_STICK     = ((1 << 3), 1)
+        
+        UP          = (0, 3)
+        UP_RIGHT    = (1, 3)
+        RIGHT       = (2, 3)
+        RIGHT_DOWN  = (3, 3)
+        DOWN        = (4, 3)    
+        DOWN_LEFT   = (5, 3)
+        LEFT        = (6, 3)    
+        LEFT_UP     = (7, 3)
+    
+    class JStickIndex(Enum):
+        UP          = (0, 100)
+        UP_RIGHT    = (-100, 100)
+        RIGHT       = (100, 0)
+        RIGHT_DOWN  = (-100, -100)
+        DOWN        = (0, -100)    
+        DOWN_LEFT   = (100, -100)
+        LEFT        = (-100, 0)   
+        LEFT_UP     = (100, 100)
+    
     def __init__(self, port="/dev/ttyUSB0", baudrate=19200, timeout=1):
         self.serial = serial.Serial(port, baudrate, timeout=1)
 
@@ -95,7 +108,7 @@ class ControllerManager:
     
     def press(self, input : InputMap = InputMap.NONE, lx=128, ly=128, cx=128, cy=128, ms=100):
         
-        button = ButtonIndex[input.value]
+        button = self.ButtonIndex[input.value]
         
         if button.zone == 1:
             self.send_input(but1=button.bit_shift, lx=lx, ly=ly, cx=cx, cy=cy)
@@ -112,6 +125,18 @@ class ControllerManager:
         self.send_input()   
         
         time.sleep(0.2)
+        
+    def tilt_sticks(self, input_stick, ms=100):
+        x = self.JStickIndex[input_stick.value][0]
+        y = self.JStickIndex[input_stick.value][1]
+        
+        if isinstance(input_stick, RStickInput):
+            self.send_input(but3=8, lx=128, ly=128, cx=x, cy=y)
+        elif isinstance(input_stick, LStickInput):
+            self.send_input(but3=8, lx=x, ly=y, cx=128, cy=128)
+            
+        
+        
     
     def get_controller_selected(self):
         # Press R+L to get the current controller type

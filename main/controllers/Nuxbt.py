@@ -1,50 +1,71 @@
 
 
 from enum import Enum
+import time
+import logging
 
-from main.controllers.InputMap import InputMap
+from main.controllers.ControlDummy import ControlDummy
+from main.InputMap import InputMap, RStickInput, LStickInput
 
 import nuxbt
 from nuxbt import Sticks, Buttons
 
-class ButtonIndex_Nuxbt(Enum):
-    Y = Buttons.Y
-    X = Buttons.X
-    B = Buttons.B
-    A = Buttons.A
-    R = Buttons.R
-    ZR = Buttons.ZR
-    
-    HOME = Buttons.HOME
-    CAPTURE = Buttons.CAPTURE
-    
-    L = Buttons.L
-    ZL = Buttons.ZL
-    MINUS = Buttons.MINUS
-    PLUS = Buttons.PLUS
 
-    
-    UP = Buttons.DPAD_UP
-    UP_RIGHT = None
-    RIGHT = Buttons.DPAD_RIGHT
-    RIGHT_DOWN = None
-    DOWN = Buttons.DPAD_DOWN
-    DOWN_LEFT = None
-    LEFT =  Buttons.DPAD_LEFT   
-    LEFT_UP = None
 
 # Done with https://github.com/hannahbee91/nuxbt
-class NuxbtController():
+class NuxbtController(ControlDummy):
+    class ButtonIndex(Enum):
+        Y = Buttons.Y
+        X = Buttons.X
+        B = Buttons.B
+        A = Buttons.A
+        R = Buttons.R
+        ZR = Buttons.ZR
+        HOME = Buttons.HOME
+        CAPTURE = Buttons.CAPTURE
+        L = Buttons.L
+        ZL = Buttons.ZL
+        MINUS = Buttons.MINUS
+        PLUS = Buttons.PLUS
+        UP = Buttons.DPAD_UP
+        UP_RIGHT = None
+        RIGHT = Buttons.DPAD_RIGHT
+        RIGHT_DOWN = None
+        DOWN = Buttons.DPAD_DOWN
+        DOWN_LEFT = None
+        LEFT =  Buttons.DPAD_LEFT   
+        LEFT_UP = None
+    
+    class JStickIndex(Enum):
+        UP          = (0, 100)
+        UP_RIGHT    = (-100, 100)
+        RIGHT       = (100, 0)
+        RIGHT_DOWN  = (-100, -100)
+        DOWN        = (0, -100)    
+        DOWN_LEFT   = (100, -100)
+        LEFT        = (-100, 0)   
+        LEFT_UP     = (100, 100)
+    
+    
     def __init__(self):
-        self.nx = nuxbt.Nuxbt(disable_logging=True)
-        # Create a Pro Controller and wait for it to connect
+        self.nx = nuxbt.Nuxbt(log_file_path=True, debug=False)
+        self.controller_index = self.nx.create_controller(nuxbt.PRO_CONTROLLER)
         
-    def press(self, input : InputMap = InputMap.NONE, lx=0, ly=0, cx=0, cy=0, ms=100):
+    def press_button(self, input : InputMap = InputMap.NONE, ms=100):
         if input is not InputMap.NONE:
-            self.nx.press_buttons(self.controller_index, [ButtonIndex_Nuxbt[input.value].value],down=ms/1000)
-        else:
-            self.nx.tilt_stick(self.controller_index, Sticks.LEFT_STICK, lx, ly, tilted=ms/1000)
-
+            self.nx.press_buttons(self.controller_index, [self.ButtonIndex[input.value].value],down=ms/1000)
+        
+            
+    def tilt_sticks(self, input_stick: RStickInput|LStickInput, ms=100):
+        if isinstance(input_stick, RStickInput):
+            stick = Sticks.RIGHT_STICK
+        elif isinstance(input_stick, LStickInput):
+            stick = Sticks.LEFT_STICK
+            
+        x = self.JStickIndex[input_stick.value].value[0]
+        y = self.JStickIndex[input_stick.value].value[1]
+        
+        self.nx.tilt_stick(self.controller_index, stick, x, y, tilted=ms/1000)
     
     def get_controller_selected(self):
         pass
@@ -53,5 +74,9 @@ class NuxbtController():
         self.nx.remove_controller(self.controller_index)
     
     def sync(self):
-        self.controller_index = self.nx.create_controller(nuxbt.PRO_CONTROLLER)
         self.nx.wait_for_connection(self.controller_index)
+        
+    def resync_controller(self):
+        logging.info("Cleaning all macros")
+        self.nx.clear_all_macros()
+    
