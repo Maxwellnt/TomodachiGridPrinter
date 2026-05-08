@@ -2,10 +2,13 @@
 
 from enum import Enum
 
-from main.InputMap import InputMap, RStickInput, LStickInput
+from gridprinter.InputMap import InputMap, RStickInput, LStickInput
 
 
 class ControlDummy():
+    DEFAULT_MS_INPUT = 100
+    DEFAULT_SLEEP_TIME = 100
+    
     class ButtonIndex(Enum):
         Y = "A"
         X = "X"
@@ -44,10 +47,10 @@ class ControlDummy():
         pass
     
     
-    def press_button(self, input : InputMap = InputMap.NONE, ms=100):
+    def press_button(self, input : InputMap = InputMap.NONE, ms=DEFAULT_MS_INPUT, sleep_time=DEFAULT_SLEEP_TIME):
         pass
     
-    def tilt_sticks(self, jstick : RStickInput|LStickInput, ms=100):
+    def tilt_sticks(self, jstick : RStickInput|LStickInput, ms=DEFAULT_MS_INPUT, sleep_time=DEFAULT_SLEEP_TIME):
         pass
     
     def get_controller_selected(self):

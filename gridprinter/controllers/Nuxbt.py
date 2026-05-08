@@ -4,8 +4,8 @@ from enum import Enum
 import time
 import logging
 
-from main.controllers.ControlDummy import ControlDummy
-from main.InputMap import InputMap, RStickInput, LStickInput
+from gridprinter.controllers.ControlDummy import ControlDummy
+from gridprinter.InputMap import InputMap, RStickInput, LStickInput
 
 import nuxbt
 from nuxbt import Sticks, Buttons
@@ -14,6 +14,9 @@ from nuxbt import Sticks, Buttons
 
 # Done with https://github.com/hannahbee91/nuxbt
 class NuxbtController(ControlDummy):
+    DEFAULT_MS_INPUT = 100
+    DEFAULT_SLEEP_TIME = 100
+    
     class ButtonIndex(Enum):
         Y = Buttons.Y
         X = Buttons.X
@@ -51,12 +54,12 @@ class NuxbtController(ControlDummy):
         self.nx = nuxbt.Nuxbt(log_file_path=True, debug=False)
         self.controller_index = self.nx.create_controller(nuxbt.PRO_CONTROLLER)
         
-    def press_button(self, input : InputMap = InputMap.NONE, ms=100):
+    def press_button(self, input : InputMap = InputMap.NONE, ms=DEFAULT_MS_INPUT, sleep_time=DEFAULT_SLEEP_TIME):
         if input is not InputMap.NONE:
-            self.nx.press_buttons(self.controller_index, [self.ButtonIndex[input.value].value],down=ms/1000)
+            self.nx.press_buttons(self.controller_index, [self.ButtonIndex[input.value].value],down=ms/1000, up=sleep_time/1000)
         
             
-    def tilt_sticks(self, input_stick: RStickInput|LStickInput, ms=100):
+    def tilt_sticks(self, input_stick: RStickInput|LStickInput, ms=DEFAULT_MS_INPUT, sleep_time=DEFAULT_SLEEP_TIME):
         if isinstance(input_stick, RStickInput):
             stick = Sticks.RIGHT_STICK
         elif isinstance(input_stick, LStickInput):
@@ -65,7 +68,7 @@ class NuxbtController(ControlDummy):
         x = self.JStickIndex[input_stick.value].value[0]
         y = self.JStickIndex[input_stick.value].value[1]
         
-        self.nx.tilt_stick(self.controller_index, stick, x, y, tilted=ms/1000)
+        self.nx.tilt_stick(self.controller_index, stick, x, y, tilted=ms/1000, released=sleep_time/1000)
     
     def get_controller_selected(self):
         pass
