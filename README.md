@@ -6,7 +6,7 @@ Readme work in progress
 Python module to automatically print a dissing from [Living the grid](https://living-the-grid.com/) using the JSON export feature.
 This project support multiple controller emulation projects:
 
-* Linux PC: [hannahbee91/nuxbt](https://github.com/hannahbee91/nuxbt) (Recommended)
+* Linux PC: [hannahbee91/nuxbt](https://github.com/hannahbee91/nuxbt) 
 * ESP32: [nullstalgia/UARTSwitchCon](https://github.com/nullstalgia/UARTSwitchCon) (Not Recommended)
   * I have a lot of miss inputs using it in my ESP32
 * USB-enabled AVR: [nullstalgia/UARTSwitchCon](https://github.com/nullstalgia/UARTSwitchCon)
