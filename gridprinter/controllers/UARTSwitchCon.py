@@ -19,8 +19,8 @@ Abandone this
 
 
 class ControllerManager(ControlDummy):
-    DEFAULT_MS_INPUT = 120
-    DEFAULT_SLEEP_TIME = 160
+
+
     class ButtonIndex(Enum):
         def __new__(cls, bit_shift, zone):
             obj = object.__new__(cls)
@@ -66,8 +66,10 @@ class ControllerManager(ControlDummy):
         LEFT        = (0, 128)   
         LEFT_UP     = (0, 255)
     
-    def __init__(self, port="/dev/ttyUSB0", baudrate=19200, timeout=1):
-        self.serial = serial.Serial(port, baudrate, timeout=1)
+    def __init__(self, port="/dev/ttyUSB0", baudrate=19200, default_time_input=150, default_sleep_time=150):
+        self.serial = serial.Serial(port, baudrate)
+        self.DEFAULT_MS_INPUT = default_time_input
+        self.DEFAULT_SLEEP_TIME = default_sleep_time
 
     # ── Handshake (must be done before sending inputs) ──
     def sync(self):
@@ -108,17 +110,21 @@ class ControllerManager(ControlDummy):
 
 
     
-    def press_button(self, input : InputMap = InputMap.NONE,ms=DEFAULT_MS_INPUT, sleep_time=DEFAULT_SLEEP_TIME):
+    def press_button(self, input : InputMap = InputMap.NONE,ms=None, sleep_time=None):
         
         button = self.ButtonIndex[input.value]
-            
+        ms = ms if ms is not None else self.DEFAULT_MS_INPUT
+        sleep_time = sleep_time if sleep_time is not None else self.DEFAULT_SLEEP_TIME
         self.send_input(**{"but"+str(button.zone): button.bit_shift})
         
         time.sleep(ms / 1000)
         self.send_input()   
         time.sleep(sleep_time/1000)
         
-    def tilt_sticks(self, input_stick, ms=DEFAULT_MS_INPUT, sleep_time=DEFAULT_SLEEP_TIME):
+    def tilt_sticks(self, input_stick, ms=None, sleep_time=None):
+        ms = ms if ms is not None else self.DEFAULT_MS_INPUT
+        sleep_time = sleep_time if sleep_time is not None else self.DEFAULT_SLEEP_TIME
+
         x = self.JStickIndex[input_stick.value].value[0]
         y = self.JStickIndex[input_stick.value].value[1]
 
@@ -152,6 +158,8 @@ class ControllerManager(ControlDummy):
         # ── CRC8 CCITT ──
         def crc8(data: list[int]) -> int:
             crc = 0
+            
+            
             for byte in data:
                 crc ^= byte
                 for _ in range(8):

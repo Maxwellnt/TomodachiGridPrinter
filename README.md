@@ -8,7 +8,8 @@ This project support multiple controller emulation projects:
 
 * Linux PC: [hannahbee91/nuxbt](https://github.com/hannahbee91/nuxbt) (Recommended)
 * ESP32: [nullstalgia/UARTSwitchCon](https://github.com/nullstalgia/UARTSwitchCon) (Not Recommended)
-  * I have a lot of miss inputs using it in my ESP32!
+  * I have a lot of miss inputs using it in my ESP32
+* USB-enabled AVR: [nullstalgia/UARTSwitchCon](https://github.com/nullstalgia/UARTSwitchCon)
 * And more coming in the future
 
 This only have been tested in a linux machine
@@ -36,10 +37,13 @@ For nuxbt:
 ```python3 -m gridprinter --controller="nuxbt" <json_path>```
 
 For UARTSwitchCon (ESP32):
-```python3 -m gridprinter --controller="urat" <json_path>```
+```python3 -m gridprinter --controller="esp32" <json_path>```
+
+For UARTSwitchCon (AVR):
+```python3 -m gridprinter --controller="avr" --port="<SERIAL_PORT>" <json_path>```
 
 For a dry run without controllers:
-```python3 -m gridprinter --controller="dry-run" <json_path>```
+```python3 -m gridprinter --controller="dry-run" --port="<SERIAL_PORT>" <json_path>```
 
 * First, the program will ask if you are in the current canvas you want to use; use your normal controller to navigate the Palette House menu.
 * Secondly, it will ask to turn off your controller once inside the canvas screen.
@@ -50,3 +54,6 @@ For a dry run without controllers:
 
 First the script selects the first 9 colors the JSON has in the in-game color palette, then it starts printing.
 The printing is done with a zig-zag pattern (right to left), skipping rows if there are no pixels or no pixels with the current selected palette.
+
+### Things I done with this tool
+

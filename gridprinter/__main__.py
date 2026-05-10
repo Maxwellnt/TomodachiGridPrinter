@@ -55,7 +55,7 @@ if __name__ == "__main__":
     
     parser.add_argument('json_grid', type=str, help='Path to the grid JSON file')
     parser.add_argument('--verbose', '-v', action='store_true', help='Add more verbose logging')
-    parser.add_argument('--controller', type=str, choices=['nuxbt', 'uart', 'dry-run'], default='nuxbt', help='Controller type to use (default: nuxbt)')
+    parser.add_argument('--controller', type=str, choices=['nuxbt', 'esp32', 'avr', 'dry-run'], default='nuxbt', help='Controller type to use (default: nuxbt)')
     parser.add_argument('--port', type=str, default="/dev/ttyUSB0", help='Serial port to connect to (default: /dev/ttyUSB0)')
     
 
@@ -70,8 +70,10 @@ if __name__ == "__main__":
         cm = ControlDummy()
     elif args.controller == 'nuxbt':
         cm = NuxbtController()
-    elif args.controller == 'uart':
+    elif args.controller == 'esp32':
         cm = ControllerManager(port=args.port)
+    elif args.controller == 'avr':
+        cm = ControllerManager(port=args.port, default_time_input=95, default_sleep_time=90)
     else:
         raise ValueError("Invalid controller type")    
             
@@ -84,10 +86,11 @@ if __name__ == "__main__":
         cm.sync()
         time.sleep(1)  # Give some time for the connection to stabilize
         if args.controller != 'dry-run':
+            cm.get_controller_selected()
             input("Has your been selected? Press Enter to continue...")
             
-            cm.get_controller_selected()
-            time.sleep(2)
+            
+            
             proses_inputs(cm=cm, inputs=[(InputMap.A, 100, 2000)])
                 
             reset_canvas=input("Is your canvas in an inconsent state? This will exit any windows and reset the canvas [Y/N]")
