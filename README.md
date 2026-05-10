@@ -56,4 +56,11 @@ First the script selects the first 9 colors the JSON has in the in-game color pa
 The printing is done with a zig-zag pattern (right to left), skipping rows if there are no pixels or no pixels with the current selected palette.
 
 ### Things I done with this tool
+<table>
+  <tr>
+ <td><img width="286" height="286" alt="CubeBabyDrawing" src="https://github.com/user-attachments/assets/b6bd24fe-5f5c-4dae-a668-bf30fa120b67" />Cube baby (From Issac)</td>
+ <td><img width="286" height="286" alt="TheMeatCube" src="https://github.com/user-attachments/assets/989e04e9-23d2-437b-8635-bda1e64f4999" />The meat cube (From real life)</td> 
+</p> 
+
+
 
