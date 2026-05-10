@@ -4,8 +4,8 @@ import logging
 import serial
 import time
 
-from main.InputMap import InputMap, LStickInput, RStickInput
-from main.controllers.ControlDummy import ControlDummy
+from gridprinter.InputMap import InputMap, LStickInput, RStickInput
+from gridprinter.controllers.ControlDummy import ControlDummy
 
 
 
@@ -19,6 +19,8 @@ Abandone this
 
 
 class ControllerManager(ControlDummy):
+
+
     class ButtonIndex(Enum):
         def __new__(cls, bit_shift, zone):
             obj = object.__new__(cls)
@@ -55,17 +57,19 @@ class ControllerManager(ControlDummy):
         LEFT_UP     = (7, 3)
     
     class JStickIndex(Enum):
-        UP          = (0, 100)
-        UP_RIGHT    = (-100, 100)
-        RIGHT       = (100, 0)
-        RIGHT_DOWN  = (-100, -100)
-        DOWN        = (0, -100)    
-        DOWN_LEFT   = (100, -100)
-        LEFT        = (-100, 0)   
-        LEFT_UP     = (100, 100)
+        UP          = (128, 0)
+        UP_RIGHT    = (255, 255)
+        RIGHT       = (255, 128)
+        RIGHT_DOWN  = (255, 0)
+        DOWN        = (128, 255)    
+        DOWN_LEFT   = (0, 0)
+        LEFT        = (0, 128)   
+        LEFT_UP     = (0, 255)
     
-    def __init__(self, port="/dev/ttyUSB0", baudrate=19200, timeout=1):
-        self.serial = serial.Serial(port, baudrate, timeout=1)
+    def __init__(self, port="/dev/ttyUSB0", baudrate=19200, default_time_input=150, default_sleep_time=150):
+        self.serial = serial.Serial(port, baudrate)
+        self.DEFAULT_MS_INPUT = default_time_input
+        self.DEFAULT_SLEEP_TIME = default_sleep_time
 
     # ── Handshake (must be done before sending inputs) ──
     def sync(self):
@@ -106,44 +110,40 @@ class ControllerManager(ControlDummy):
 
 
     
-    def press(self, input : InputMap = InputMap.NONE, lx=128, ly=128, cx=128, cy=128, ms=100):
+    def press_button(self, input : InputMap = InputMap.NONE,ms=None, sleep_time=None):
         
         button = self.ButtonIndex[input.value]
-        
-        if button.zone == 1:
-            self.send_input(but1=button.bit_shift, lx=lx, ly=ly, cx=cx, cy=cy)
-        elif button.zone == 2:
-            self.send_input(but2=button.bit_shift, lx=lx, ly=ly, cx=cx, cy=cy)
-        elif button.zone == 3:
-            self.send_input(but3=button.bit_shift, lx=lx, ly=ly, cx=cx, cy=cy)
-        else:
-            raise ValueError("Invalid button zone")
-            
-    
+        ms = ms if ms is not None else self.DEFAULT_MS_INPUT
+        sleep_time = sleep_time if sleep_time is not None else self.DEFAULT_SLEEP_TIME
+        self.send_input(**{"but"+str(button.zone): button.bit_shift})
         
         time.sleep(ms / 1000)
         self.send_input()   
+        time.sleep(sleep_time/1000)
         
-        time.sleep(0.2)
-        
-    def tilt_sticks(self, input_stick, ms=100):
-        x = self.JStickIndex[input_stick.value][0]
-        y = self.JStickIndex[input_stick.value][1]
-        
+    def tilt_sticks(self, input_stick, ms=None, sleep_time=None):
+        ms = ms if ms is not None else self.DEFAULT_MS_INPUT
+        sleep_time = sleep_time if sleep_time is not None else self.DEFAULT_SLEEP_TIME
+
+        x = self.JStickIndex[input_stick.value].value[0]
+        y = self.JStickIndex[input_stick.value].value[1]
+
         if isinstance(input_stick, RStickInput):
             self.send_input(but3=8, lx=128, ly=128, cx=x, cy=y)
         elif isinstance(input_stick, LStickInput):
             self.send_input(but3=8, lx=x, ly=y, cx=128, cy=128)
             
-        
+        time.sleep(ms / 1000)
+        self.send_input()   
+        time.sleep(sleep_time/1000)
         
     
     def get_controller_selected(self):
         # Press R+L to get the current controller type
-        self.press(input=InputMap.R, ms=50)
-        self.press(input=InputMap.L, ms=50)
-        self.press(ms=150)
-    
+        self.press_button(input=InputMap.R, ms=120, sleep_time=100)
+        self.press_button(input=InputMap.L, ms=120, sleep_time=100)
+        
+
     def force_resync(self):
         print("Forcing resync...")
         packet = [0, 0, 0, 128, 128, 128, 128, 0, 255]
@@ -158,6 +158,8 @@ class ControllerManager(ControlDummy):
         # ── CRC8 CCITT ──
         def crc8(data: list[int]) -> int:
             crc = 0
+            
+            
             for byte in data:
                 crc ^= byte
                 for _ in range(8):
@@ -181,4 +183,5 @@ class ControllerManager(ControlDummy):
             print(f"Unexpected response: {resp.hex()}")
             
     def close_connection(self):
+        self.press_button()  # Send neutral input before closing
         self.serial.close()

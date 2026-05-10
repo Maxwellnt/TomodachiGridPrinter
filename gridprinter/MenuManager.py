@@ -2,8 +2,9 @@ from enum import Enum
 import os
 import json
 import logging
+import time
 
-from main.InputMap import InputMap, LStickInput, RStickInput
+from gridprinter.InputMap import InputMap, LStickInput, RStickInput
 
 class UpperMenu(Enum):
     UNDO = 0
@@ -48,17 +49,19 @@ class MenuManager:
 
             self.palette = canvas_data["palette"]
             self.pixels = canvas_data["pixels"]
-
+        
         self.selected_tool = UpperMenu.BRUSH.value
         self.selected_palette = None
         self.selected_ingame_palette = 0
         self.ingame_palette = [None, None, None, None, None, None, None, None, None]
-
+        
+        self.x_cursor = 0
+        self.y_cursor = 0
     
     def delta_inputs(self, 
                      delta_value:int, 
                      positive_input: InputMap|RStickInput|LStickInput, 
-                     negative_input: InputMap|RStickInput|LStickInput):
+                     negative_input: InputMap|RStickInput|LStickInput, sleep_time=0):
         if delta_value >= 0:
             input_value = positive_input
         else:
@@ -66,8 +69,11 @@ class MenuManager:
     
             
         for _ in range(abs(delta_value)):
-            yield input_value
-    
+            # Added Sleep time to make the palette selection more reliable
+            yield input_value, 100, sleep_time
+            
+            
+            
     def select_ingame_color(self, new_index=None, new_color=None, select_color=False):
         yield InputMap.Y
         
@@ -77,7 +83,7 @@ class MenuManager:
         
         delta_index = new_index - self.selected_ingame_palette
         
-        yield from self.delta_inputs(delta_index, InputMap.DOWN, InputMap.UP)
+        yield from self.delta_inputs(delta_index, InputMap.DOWN, InputMap.UP, sleep_time=200)
 
         if select_color:
             yield InputMap.A
@@ -305,8 +311,12 @@ class MenuManager:
                 if any(pixel_color is not None and self.palette[pixel_color] in self.ingame_palette for pixel_color in self.pixels[row_index]):   
                     
                     row = self.pixels[row_index] if is_right else list(reversed(self.pixels[row_index]))
+                    lower_row = self.pixels[row_index+1] if row_index < len(self.pixels) - 1 else [None] * len(row)
                     
                     for pixel_index in range(len(row)):
+                        
+                        # Check if the rest of the row has any pixel with a color in the ingame palette
+                            
                         if (row[pixel_index] is not None and self.palette[row[pixel_index]] in self.ingame_palette):
                             
                             if self.ingame_palette[self.selected_ingame_palette] is not self.palette[row[pixel_index]]:
@@ -339,7 +349,7 @@ class MenuManager:
         
         yield InputMap.DOWN
         yield InputMap.DOWN
-        yield InputMap.DOWN
+        
         
         yield InputMap.A
         
