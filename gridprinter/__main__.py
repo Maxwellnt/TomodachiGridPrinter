@@ -35,7 +35,7 @@ def proses_inputs(cm: ControlDummy, inputs:list | Generator):
             sleep_time = cm.DEFAULT_SLEEP_TIME
             input_command = controller_command
             
-        logging.info(f"Processing input: {input_command}, ms: {ms}, sleep_time: {sleep_time}")
+        logging.debug(f"Processing input: {input_command}, ms: {ms}, sleep_time: {sleep_time}")
         if isinstance(input_command, InputMap):
 
             cm.press_button(input_command, ms=ms, sleep_time=sleep_time)
@@ -91,30 +91,26 @@ if __name__ == "__main__":
             
             
             
-            proses_inputs(cm=cm, inputs=[(InputMap.A, 100, 2000)])
+            proses_inputs(cm=cm, inputs=[(InputMap.A, 100, 500)])
                 
             reset_canvas=input("Is your canvas in an inconsent state? This will exit any windows and reset the canvas [Y/N]")
             
             if reset_canvas.upper() == 'Y':
-                # Restore tool selection
-                
-                proses_inputs(cm=cm, inputs=[InputMap.B, InputMap.B])
-                
-                proses_inputs(cm, mm.select_tool(UpperMenu.UNDO))
-                proses_inputs(cm, mm.select_tool(UpperMenu.BRUSH))
-                
-                # Restore palette selection
-                proses_inputs(cm, mm.select_ingame_color(new_index=9, select_color=True))
-                proses_inputs(cm, mm.select_ingame_color(new_index=0, select_color=True))
-                
                 proses_inputs(cm, mm.reset_canvas())  
                 
               
         proses_inputs(cm, mm.select_tool(UpperMenu.BRUSH))
         proses_inputs(cm, mm.select_brush())
-                
-        proses_inputs(cm, mm.set_cusor_to_zero())
-        proses_inputs(cm, mm.get_movement_instructions_strat_2(ingame_palette_size=9))
+        
+        if args.controller == 'dry-run':
+            for i in range(1,10):
+                input_count = 0
+                time_count = 0
+                proses_inputs(cm, mm.get_movement_instructions(ingame_palette_size=i))
+                logging.info(f"Total inputs {input_count} with ingame palette size {i} and {(time_count/1000)/60:.2f} mins")
+        else:
+            proses_inputs(cm, mm.get_movement_instructions())
+            
     
 
         
