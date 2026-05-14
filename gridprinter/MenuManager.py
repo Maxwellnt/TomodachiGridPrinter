@@ -59,7 +59,7 @@ class MenuManager:
         self.x_cursor = int(self.canvas_width/2)
         self.y_cursor = int(self.canvas_height/2)
         
-        self.ingame_canvas = [[None] * self.canvas_height] * self.canvas_width
+        self.ingame_canvas = [[None] * self.canvas_width] * self.canvas_height
         self.ingame_palette = [{}] * 9
         
         self.color_quantity = self.count_colors_in_canvas()
@@ -229,6 +229,7 @@ class MenuManager:
         palette_chunks = [self.palette[i:i + n] for i in range(0, len(self.palette), n)]
         
         for mini_palette in palette_chunks:
+            self.ingame_palette = [{}] * 9
             for mini_palette_index in range(len(mini_palette)):
         
                 yield from self.select_ingame_color(mini_palette_index, select_color=True)
